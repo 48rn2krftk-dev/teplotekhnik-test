@@ -1,0 +1,44 @@
+name: Предложить улучшение
+description: Предложите новую функцию или изменение
+title: "[Предложение]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Опишите рабочую ситуацию и пользу от изменения. Это поможет правильно расставить приоритеты.
+
+  - type: textarea
+    id: task
+    attributes:
+      label: Какую задачу нужно решить?
+      description: Расскажите, в какой ситуации текущего поведения приложения недостаточно.
+      placeholder: При восстановлении ведомости мне нужно...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Как должно работать улучшение?
+      description: Опишите желаемое поведение или внешний вид.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Как вы решаете эту задачу сейчас?
+      description: Необязательное поле. Можно описать ручной расчёт или обходной способ.
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Насколько часто это требуется?
+      options:
+        - Почти при каждой работе
+        - Несколько раз в неделю
+        - Иногда
+        - Редкий особый случай
+    validations:
+      required: true
+

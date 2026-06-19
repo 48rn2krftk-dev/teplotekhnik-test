@@ -1,0 +1,55 @@
+name: Сообщить об ошибке
+description: Расскажите о проблеме в приложении
+title: "[Ошибка]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за сообщение. Чем точнее описание, тем быстрее получится найти причину.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Что произошло?
+      description: Опишите ошибку и результат, который вы ожидали получить.
+      placeholder: Я ввёл данные..., нажал..., после чего...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как повторить ошибку?
+      description: Укажите последовательность действий и использованные значения.
+      placeholder: |
+        1. Открыть экран...
+        2. Ввести...
+        3. Нажать...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: Устройство
+      options:
+        - iPhone или iPad
+        - Android
+        - Компьютер
+        - Другое
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Браузер
+      description: Например, Safari, Chrome или приложение с домашнего экрана.
+      placeholder: Safari
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Дополнительная информация
+      description: Сюда можно перетащить снимок экрана или добавить другие подробности.
+
