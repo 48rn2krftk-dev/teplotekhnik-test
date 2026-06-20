@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "teplotekhnik-test-";
-const CACHE_NAME = `${CACHE_PREFIX}v4`;
+const CACHE_NAME = `${CACHE_PREFIX}v5`;
 const APP_SHELL = new URL("./", self.registration.scope).href;
 const STATIC_FILES = [
   "manifest.webmanifest",
