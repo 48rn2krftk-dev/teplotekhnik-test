@@ -1,5 +1,4 @@
 import type {
-  DriverRoute,
   FuelChainCorrection,
   LocomotiveSection,
   ThuOperation,
@@ -167,50 +166,16 @@ function isHotIdleNotWorse(
   return afterMinutes <= beforeMinutes + 0.000001 && afterFuel <= beforeFuel + 0.001;
 }
 
-function idealDriverRouteActualFuel(route: DriverRoute): number | null {
-  if (route.isZeroRoute || route.normFuel === null || route.normFuel <= 0) {
-    return null;
-  }
-
-  return route.normFuel * 0.9;
-}
-
 function createSuggestedThuId(previous: ChainDocument, next: ChainDocument) {
   return `suggested-thu-${previous.document.id}-${next.document.id}`;
 }
 
-function allocateFuelIncrease(
-  sections: Array<{ key: string; previousFuel: number }>,
-  increase: number,
-  tankCapacity: number | null
-): Map<string, number> | null {
-  const targets = new Map(
-    sections.map((section) => [section.key, section.previousFuel])
-  );
-  let remaining = increase;
-
-  for (let index = 0; index < sections.length; index += 1) {
-    const rest = sections.length - index;
-    const share = remaining / rest;
-    const section = sections[index];
-    const current = targets.get(section.key) ?? section.previousFuel;
-    const capacity =
-      tankCapacity === null ? Number.POSITIVE_INFINITY : tankCapacity - current;
-    const add = Math.min(share, capacity);
-
-    if (add < -0.000001) return null;
-
-    targets.set(section.key, current + add);
-    remaining -= add;
-  }
-
-  return Math.abs(remaining) < 0.001 ? targets : null;
-}
-
 export function buildSuggestedThuForGap(
   link: ChainLinkAnalysis,
-  tankCapacity: number | null
+  _tankCapacity: number | null
 ): ChainSuggestedThu | null {
+  void _tankCapacity;
+
   if (link.timeStatus !== "gap" || link.locationStatus !== "continuous") {
     return null;
   }
@@ -235,79 +200,16 @@ export function buildSuggestedThuForGap(
 
   if (matchedSections.length === 0) return null;
 
-  let targetStartByKey = new Map(
+  const targetEndByKey = new Map(
     matchedSections.map((section) => [
       section.key,
-      link.next.type === "driverRoute"
-        ? section.next.fuelAtStart
-        : section.previous.fuelAtEnd,
+      section.next.fuelAtStart,
     ])
   );
-  let updatedNext: ChainDocument | null = null;
-  let isOptimizedForRoute = false;
-
-  if (link.next.type === "driverRoute") {
-    const idealActual = idealDriverRouteActualFuel(link.next.document);
-    const previousFuelTotal = matchedSections.reduce(
-      (sum, section) => sum + section.previous.fuelAtEnd,
-      0
-    );
-    const nextEndTotal = matchedSections.reduce(
-      (sum, section) => sum + section.next.fuelAtEnd,
-      0
-    );
-
-    if (idealActual !== null) {
-      const targetStartTotal = nextEndTotal + idealActual;
-      const increase = targetStartTotal - previousFuelTotal;
-      const allocated =
-        increase > 0.001
-          ? allocateFuelIncrease(
-              matchedSections.map((section) => ({
-                key: section.key,
-                previousFuel: section.previous.fuelAtEnd,
-              })),
-              increase,
-              tankCapacity
-            )
-          : null;
-
-      if (allocated) {
-        targetStartByKey = allocated;
-        const sections = link.next.document.sections.map((section) => ({
-          ...section,
-          fuelAtStart:
-            targetStartByKey.get(sectionKey(section)) ?? section.fuelAtStart,
-        }));
-        const actualFuel = sections.reduce(
-          (sum, section) => sum + section.fuelAtStart - section.fuelAtEnd,
-          0
-        );
-        const taxation = calculateDriverRouteTaxation(
-          link.next.document.normFuel ?? actualFuel,
-          actualFuel,
-          link.next.document.isZeroRoute
-        );
-
-        updatedNext = {
-          type: "driverRoute",
-          document: {
-            ...link.next.document,
-            sections,
-            actualFuel,
-            normFuel: taxation?.normFuel ?? link.next.document.normFuel,
-            creditedResult:
-              taxation?.creditedResult ?? link.next.document.creditedResult,
-          },
-        };
-        isOptimizedForRoute = true;
-      }
-    }
-  }
 
   const sections = matchedSections.map(({ key, previous }) => {
     const fuelAtStart = previous.fuelAtEnd;
-    const fuelAtEnd = targetStartByKey.get(key) ?? fuelAtStart;
+    const fuelAtEnd = targetEndByKey.get(key) ?? fuelAtStart;
 
     return {
       id: `suggested-${previous.id}`,
@@ -316,12 +218,13 @@ export function buildSuggestedThuForGap(
       sectionNumber: previous.sectionNumber,
       fuelAtStart,
       fuelAtEnd,
-      fuelAdded: fuelAtEnd > fuelAtStart ? fuelAtEnd - fuelAtStart : null,
+      fuelAdded: null,
     };
   });
-  const hasFueling = sections.some(
-    (section) => section.fuelAtEnd > section.fuelAtStart
-  );
+
+  if (sections.some((section) => section.fuelAtEnd > section.fuelAtStart)) {
+    return null;
+  }
 
   return {
     document: {
@@ -332,15 +235,15 @@ export function buildSuggestedThuForGap(
       station: getChainDocumentEndLocation(link.previous) ?? undefined,
       shiftStart: getChainDocumentEnd(link.previous),
       shiftEnd: getChainDocumentStart(link.next),
-      operationType: hasFueling ? "fueling" : "idle",
+      operationType: "idle",
       operationStart: getChainDocumentEnd(link.previous),
       operationEnd: getChainDocumentStart(link.next),
       sections,
       createdAt: "",
       updatedAt: "",
     },
-    updatedNext,
-    isOptimizedForRoute,
+    updatedNext: null,
+    isOptimizedForRoute: false,
   };
 }
 
@@ -499,8 +402,7 @@ function applyScenarioStrategy(
       const suggestedThu = buildSuggestedThuForGap(link, tankCapacity);
       if (
         strategy === "close-gaps" &&
-        suggestedThu?.isOptimizedForRoute === true &&
-        suggestedThu.document.operationType === "fueling"
+        suggestedThu?.document.operationType === "idle"
       ) {
         items = applySuggestedThu(items, suggestedThu);
         continue;
