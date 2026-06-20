@@ -158,7 +158,7 @@ describe("chain corrections", () => {
     assert.equal(scenario.documents[1].document.sections[0].fuelAtStart, 940);
   });
 
-  it("keeps only an ideal scenario when it improves route economy without growing hot idle", () => {
+  it("does not invent a fueling THU to improve route economy", () => {
     const previousThu: ThuOperation = {
       ...thu,
       operationStart: "2026-01-01T01:00",
@@ -215,15 +215,16 @@ describe("chain corrections", () => {
       null
     );
 
-    assert.equal(scenarios.length, 1);
-    assert.equal(scenarios[0].isIdeal, true);
-    assert.equal(scenarios[0].documents.length, 3);
-    assert.equal(scenarios[0].documents[1].type, "thu");
-    assert.equal(scenarios[0].documents[1].document.operationType, "fueling");
-    assert.equal(scenarios[0].documents[1].document.sections[0].fuelAdded, 400);
-    assert.equal(scenarios[0].documents[1].document.sections[1].fuelAdded, 400);
-    assert.equal(scenarios[0].documents[2].type, "driverRoute");
-    assert.equal(scenarios[0].documents[2].document.actualFuel, 3600);
-    assert.equal(scenarios[0].documents[2].document.creditedResult, 400);
+    assert.ok(
+      scenarios.every((scenario) =>
+        scenario.documents.every(
+          (document) =>
+            document.type !== "thu" ||
+            document.document.operationType !== "fueling" ||
+            document.document.id !==
+              `suggested-thu-${previousThu.id}-${nextRoute.id}`
+        )
+      )
+    );
   });
 });
