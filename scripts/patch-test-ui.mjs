@@ -13,9 +13,9 @@ replaceOnce(
   return link.fuelGaps.flatMap((gap) =>
     gap.previousFuel !== null && gap.nextFuel !== null
       ? [
-          \`${uiText.chains.sectionLabel(gap.sectionKey)}: ${formatNumber(
+          \`\${uiText.chains.sectionLabel(gap.sectionKey)}: \${formatNumber(
             gap.previousFuel
-          )} / ${formatNumber(gap.nextFuel)} кг\`,
+          )} / \${formatNumber(gap.nextFuel)} кг\`,
         ]
       : []
   );
